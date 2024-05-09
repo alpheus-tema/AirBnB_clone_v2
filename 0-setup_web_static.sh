@@ -1,35 +1,42 @@
 #!/usr/bin/env bash
-# Sets up a web server for deployment of web_static.
+# Deploy webservers (web01, web02) in web_static using Fabric
+# 142.44.167.237 214-web-01 144.217.246.206 214-web-02
 
-apt-get update
-apt-get install -y nginx
+# install nginx
+sudo apt-get update
+sudo apt-get -y upgrade
+sudo apt-get -y install nginx
 
-mkdir -p /data/web_static/releases/test/
-mkdir -p /data/web_static/shared/
-echo "Holberton School" > /data/web_static/releases/test/index.html
-ln -sf /data/web_static/releases/test/ /data/web_static/current
+# create folders
+sudo mkdir -p /data/
+sudo mkdir -p /data/web_static/
+sudo mkdir -p /data/web_static/releases/
+sudo mkdir -p /data/web_static/shared/
+sudo mkdir -p /data/web_static/releases/test/
 
-chown -R ubuntu /data/
-chgrp -R ubuntu /data/
+# create basic HTML file
+sudo echo "<html>
+  <head>
+  </head>
+  <body>
+Holberton School
+  </body>
+</html>" | sudo tee /data/web_static/releases/test/index.html
 
-printf %s "server {
-    listen 80 default_server;
-    listen [::]:80 default_server;
-    add_header X-Served-By $hostname;
-    root   /var/www/html;
-    index  index.html index.htm;
-    location /hbnb_static {
-        alias /data/web_static/current;
-        index index.html index.htm;
-    }
-    location /redirect_me {
-        return 301 http://github.com/besthor;
-    }
-    error_page 404 /404.html;
-    location /404 {
-      root /var/www/html;
-      internal;
-    }
-}" > /etc/nginx/sites-available/default
+# create new symbolic link
+if [ -L /data/web_static/current ]
+then sudo rm /data/web_static/current
+fi
+sudo ln -s /data/web_static/releases/test/ /data/web_static/current
 
-service nginx restart
+# change owner & group of /data/ to ubuntu
+sudo chown -R ubuntu /data
+sudo chown -R ubuntu:ubuntu /data
+
+# update nginx to serve content of /data/web_static/current to hbnb_static
+sudo sed -i '17i\\tlocation /hbnb_static/ {\n\t\talias /data/web_static/current/;\n\t}' /etc/nginx/sites-available/default
+
+# restart nginx
+sudo service nginx restart
+
+exit 0
